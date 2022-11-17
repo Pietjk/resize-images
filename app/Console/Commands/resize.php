@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Console\Command;
 use Illuminate\Http\Request;
 use Image;
@@ -46,14 +45,18 @@ class resize extends Command
         // Get all images from directory
         $images = $this->getImages($dir);
 
+        // Stop program when there are no images in the directory
         if (empty($images)) {
             $this->error('Oeps, het lijkt erop dat er geen afbeeldingen in deze map zitten.');
             die();
         }
 
+        // Make new directory path
         $path = $dir.'\verkleind-'.date('dmY_His').'\\';
 
+        // Resize all images
         $this->resizeImages($path, $images, $size, $quality);
+
         $this->newLine();
         $this->newLine();
         $this->info('Alle afbeeldingen zijn verkleind! Je kan ze hier vinden:');
@@ -62,12 +65,11 @@ class resize extends Command
         return Command::SUCCESS;
     }
 
-    public function randomString()
-    {
-        $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-        return substr(str_shuffle($chars), 0, 4);
-    }
-
+    /**
+     * Get the user requested width
+     *
+     * @return Int $size
+     */
     public function getSize()
     {
         $size = $this->ask('Hoe groot wil je dat de afbeelding is? (standaard 550px)');
@@ -83,6 +85,11 @@ class resize extends Command
         return $size;
     }
 
+    /**
+     * Get the user requested quality
+     *
+     * @return Int $quality
+     */
     public function getQuality()
     {
 
@@ -99,6 +106,13 @@ class resize extends Command
         return $quality;
     }
 
+    /**
+     * Get the images from the given directory
+     *
+     * @param Str $dir
+     *
+     * @return Arr $images
+     */
     public function getImages($dir)
     {
         $files = array_diff(scandir($dir), array('.', '..'));
@@ -114,6 +128,16 @@ class resize extends Command
         return $images;
     }
 
+    /**
+     * Resize the images
+     *
+     * @param Str $path
+     * @param Arr $images
+     * @param Int $size
+     * @param Int $quality
+     *
+     * @return void
+     */
     public function resizeImages($path, $images, $size, $quality)
     {
         if (!file_exists( $path ) && !is_dir($path)) {
