@@ -30,11 +30,46 @@ class resize extends Command
      */
     public function handle(Request $request)
     {
+        // Open directory
         $dir = $this->ask('Geef de bestandsmap op');
         if (!is_dir($dir)) {
-            dd('Oeps, dat is geen bestandsmap :(');
+            $this->error('Oeps, dat is geen bestandsmap :(');
+            die();
         }
 
+        // Get the user requested size
+        $size = $this->getSize();
+
+        // Get the user requested quality
+        $quality = $this->getQuality();
+
+        // Get all images from directory
+        $images = $this->getImages($dir);
+
+        if (empty($images)) {
+            $this->error('Oeps, het lijkt erop dat er geen afbeeldingen in deze map zitten.');
+            die();
+        }
+
+        $path = $dir.'\verkleind-'.date('dmY_His').'\\';
+
+        $this->resizeImages($path, $images, $size, $quality);
+        $this->newLine();
+        $this->newLine();
+        $this->info('Alle afbeeldingen zijn verkleind! Je kan ze hier vinden:');
+        $this->info($path);
+
+        return Command::SUCCESS;
+    }
+
+    public function randomString()
+    {
+        $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+        return substr(str_shuffle($chars), 0, 4);
+    }
+
+    public function getSize()
+    {
         $size = $this->ask('Hoe groot wil je dat de afbeelding is? (standaard 550px)');
 
         if (! is_numeric($size)) {
@@ -44,6 +79,12 @@ class resize extends Command
             $this->info("De grootte is naar $size px gezet");
             $size = (int)$size;
         }
+
+        return $size;
+    }
+
+    public function getQuality()
+    {
 
         $quality = $this->ask('geef de gewenste kwaliteit (standaard 100%)');
 
@@ -55,7 +96,11 @@ class resize extends Command
             $quality = (int)$quality;
         }
 
+        return $quality;
+    }
 
+    public function getImages($dir)
+    {
         $files = array_diff(scandir($dir), array('.', '..'));
         $imageTypes = ['png', 'jpg', 'jpeg', 'webp'];
         $images = [];
@@ -66,32 +111,32 @@ class resize extends Command
             }
         }
 
-        if (empty($images)) {
-            dd('Oeps, geen picjes :(');
-        }
+        return $images;
+    }
 
-        $path = $dir.'\verkleind-'.date('dmY_His').'\\';
-
+    public function resizeImages($path, $images, $size, $quality)
+    {
         if (!file_exists( $path ) && !is_dir($path)) {
             mkdir($path);
         }
+
+        $bar = $this->output->createProgressBar(count($images));
+        $bar->start();
 
         foreach ($images as $image) {
             $explodedPath = explode('\\', $image);
             $filename = end($explodedPath);
             $img = Image::make($image);
-            $img->widen(720, function ($constraint) {
+
+            $img->widen($size, function ($constraint) {
                 $constraint->upsize();
             })->encode('jpg', $quality);
+
             file_put_contents($path.$filename, $img);
+
+            $bar->advance();
         }
 
-        return Command::SUCCESS;
-    }
-
-    public function randomString()
-    {
-        $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-        return substr(str_shuffle($chars), 0, 4);
+        $bar->finish();
     }
 }
