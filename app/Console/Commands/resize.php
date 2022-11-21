@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Http\Request;
 use Image;
 
 class resize extends Command
@@ -27,13 +26,13 @@ class resize extends Command
      *
      * @return int
      */
-    public function handle(Request $request)
+    public function handle()
     {
         // Open directory
         $dir = $this->ask('Geef de bestandsmap op');
         if (!is_dir($dir)) {
             $this->error('Oeps, dat is geen bestandsmap :(');
-            die();
+            return Command::FAILURE;
         }
 
         // Get the user requested size
@@ -48,11 +47,11 @@ class resize extends Command
         // Stop program when there are no images in the directory
         if (empty($images)) {
             $this->error('Oeps, het lijkt erop dat er geen afbeeldingen in deze map zitten.');
-            die();
+            return Command::FAILURE;
         }
 
         // Make new directory path
-        $path = $dir.'\verkleind-'.date('dmY_His').'\\';
+        $path = $dir.DIRECTORY_SEPARATOR.'verkleind-'.date('dmY_His').DIRECTORY_SEPARATOR;
 
         // Resize all images
         $this->resizeImages($path, $images, $size, $quality);
@@ -68,9 +67,9 @@ class resize extends Command
     /**
      * Get the user requested width
      *
-     * @return Int $size
+     * @return integer $size
      */
-    public function getSize()
+    public function getSize(): int
     {
         $size = $this->ask('Hoe groot wil je dat de afbeelding is? (standaard 550px)');
 
@@ -88,9 +87,9 @@ class resize extends Command
     /**
      * Get the user requested quality
      *
-     * @return Int $quality
+     * @return integer $quality
      */
-    public function getQuality()
+    public function getQuality(): int
     {
 
         $quality = $this->ask('geef de gewenste kwaliteit (standaard 100%)');
@@ -109,11 +108,11 @@ class resize extends Command
     /**
      * Get the images from the given directory
      *
-     * @param Str $dir
+     * @param string $dir
      *
-     * @return Arr $images
+     * @return array $images
      */
-    public function getImages($dir)
+    public function getImages($dir): array
     {
         $files = array_diff(scandir($dir), array('.', '..'));
         $imageTypes = ['png', 'jpg', 'jpeg', 'webp'];
@@ -121,7 +120,7 @@ class resize extends Command
         foreach ($files as $file) {
             $extension = pathinfo($file, PATHINFO_EXTENSION);
             if (in_array($extension, $imageTypes) ) {
-                $images[] = $dir.'\\'.$file;
+                $images[] = $dir.DIRECTORY_SEPARATOR.$file;
             }
         }
 
@@ -131,14 +130,14 @@ class resize extends Command
     /**
      * Resize the images
      *
-     * @param Str $path
-     * @param Arr $images
-     * @param Int $size
-     * @param Int $quality
+     * @param string $path
+     * @param array $images
+     * @param int $size
+     * @param int $quality
      *
      * @return void
      */
-    public function resizeImages($path, $images, $size, $quality)
+    public function resizeImages($path, $images, $size, $quality): void
     {
         if (!file_exists( $path ) && !is_dir($path)) {
             mkdir($path);
@@ -148,7 +147,7 @@ class resize extends Command
         $bar->start();
 
         foreach ($images as $image) {
-            $explodedPath = explode('\\', $image);
+            $explodedPath = explode(DIRECTORY_SEPARATOR, $image);
             $filename = end($explodedPath);
             $img = Image::make($image);
 
